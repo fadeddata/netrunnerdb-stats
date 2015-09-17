@@ -1,7 +1,7 @@
 package controllers
 
 import play.api._, libs.json._, mvc._
-import models.NetrunnerDb
+import models.{EditDistance, NetrunnerDb}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import javax.inject._
 
@@ -42,6 +42,18 @@ class Application @Inject()(netrunnerDb: NetrunnerDb) extends Controller {
       }.reverse
 
       Ok(Json.toJson(ret))
+    }
+  }
+
+  def deckDistance(deck1Id: Long, deck2Id: Long) = Action.async {
+    for {
+      deck1 <- netrunnerDb.getDeck(deck1Id)
+      deck2 <- netrunnerDb.getDeck(deck2Id)
+    } yield {
+      val deck1CardCodes = (deck1 \ "cards").asOpt[Map[String, Long]].getOrElse(Map.empty[String, Long]).keys.toSeq.sorted
+      val deck2CardCodes = (deck2 \ "cards").asOpt[Map[String, Long]].getOrElse(Map.empty[String, Long]).keys.toSeq.sorted
+
+      Ok(EditDistance.editDist(deck1CardCodes, deck2CardCodes).toString)
     }
   }
 }

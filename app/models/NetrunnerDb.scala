@@ -38,7 +38,6 @@ class NetrunnerDbCache @Inject() (lifecycle: ApplicationLifecycle) {
       db.close()
     }
   }
-
 }
 
 class NetrunnerDb @Inject()(cache: NetrunnerDbCache) {
