@@ -18,12 +18,17 @@ class NetrunnerDbCache @Inject() (lifecycle: ApplicationLifecycle) {
 
   def getUrl(url: String)(implicit ec: ExecutionContext) = {
     Future { cache.toMap.get(url) } flatMap {
-      case Some(data) => Future.successful(Json.parse(data))
-      case None => WS.url(url).get.map { data =>
+      case Some(data) =>
+        Future.successful(Json.parse(data))
+      case None =>
         println(s"requesting data for: $url")
-        cache.put(url, data.body)
-        data.json
-      }
+        WS.url(url).get.map { data =>
+          val json = data.json
+          if ((json \ "error").toOption.isEmpty) {
+            cache.put(url, Json.stringify(json))
+          }
+          json
+        }
     }
   }
 
