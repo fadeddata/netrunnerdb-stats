@@ -3,8 +3,9 @@
 # ~~~~
 
 # Home page
-GET     /popular-sets                    controllers.Application.popularSets
-GET     /popular-cards                   controllers.Application.popularCards
-GET     /deck-distance/:deck1Id/:deck2Id controllers.Application.deckDistance(deck1Id: Long, deck2Id:Long)
+GET        /popular-sets                  controllers.Application.popularSets
+GET        /popular-cards                 controllers.Application.popularCards
+GET        /decks/:deck1Id/similar        controllers.Application.deckDistance(deck1Id: Long)
+GET        /decks                         controllers.Application.decks
 # Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
+GET        /assets/*file                  controllers.Assets.versioned(path="/public", file: Asset)

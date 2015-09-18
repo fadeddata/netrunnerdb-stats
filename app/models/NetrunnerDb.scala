@@ -16,6 +16,8 @@ class NetrunnerDbCache @Inject() (lifecycle: ApplicationLifecycle) {
   val db = DBMaker.newFileDB(dbFile).make()
   val cache = db.getHashMap[String, String]("cache")
 
+  def urls(implicit ec: ExecutionContext) = Future { cache.keys }
+
   def getUrl(url: String)(implicit ec: ExecutionContext) = {
     Future { cache.toMap.get(url) } flatMap {
       case Some(data) =>
@@ -54,6 +56,14 @@ class NetrunnerDb @Inject()(cache: NetrunnerDbCache) {
 ]
 """
   val deckIds = Json.parse(deckUrlsJson).as[Seq[Seq[String]]].flatten.map(_.split('/')(5).toLong)
+
+  def getDecks(implicit ec: ExecutionContext) = cache.urls.flatMap { urls =>
+    Future.sequence(
+      urls.filter(_.split('/').lift(4).contains("decklist")).map { url =>
+        cache.getUrl(url)
+      }
+    )
+  }
 
   def getDeck(id: Long)(implicit ec: ExecutionContext) = {
     val url = s"http://netrunnerdb.com/api/decklist/$id"
@@ -94,4 +104,11 @@ class NetrunnerDb @Inject()(cache: NetrunnerDbCache) {
     }.groupBy(_._1).map { case (set, counts) =>
       set.getOrElse("") -> counts.map(_._2).sum
     }.toList.sortBy(_._2).reverse
+
+  def getDistance(deck1: JsValue, deck2: JsValue) = {
+    val deck1CardCodes = (deck1 \ "cards").asOpt[Map[String, Long]].getOrElse(Map.empty[String, Long]).keys.toSeq.sorted
+    val deck2CardCodes = (deck2 \ "cards").asOpt[Map[String, Long]].getOrElse(Map.empty[String, Long]).keys.toSeq.sorted
+
+    EditDistance.editDist(deck1CardCodes, deck2CardCodes)
+  }
 }

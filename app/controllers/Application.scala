@@ -45,15 +45,29 @@ class Application @Inject()(netrunnerDb: NetrunnerDb) extends Controller {
     }
   }
 
-  def deckDistance(deck1Id: Long, deck2Id: Long) = Action.async {
+  def deckDistance(deck1Id: Long) = Action.async {
     for {
       deck1 <- netrunnerDb.getDeck(deck1Id)
-      deck2 <- netrunnerDb.getDeck(deck2Id)
+      decks <- netrunnerDb.getDecks
     } yield {
-      val deck1CardCodes = (deck1 \ "cards").asOpt[Map[String, Long]].getOrElse(Map.empty[String, Long]).keys.toSeq.sorted
-      val deck2CardCodes = (deck2 \ "cards").asOpt[Map[String, Long]].getOrElse(Map.empty[String, Long]).keys.toSeq.sorted
+      Ok(JsArray(
+        decks.map { deck =>
+          netrunnerDb.getDistance(deck1, deck) -> deck
+        }.toSeq.sortBy(_._1).map { case (score, deck) =>
+          JsObject(Seq(
+            "score" -> JsNumber(score),
+            "deck" -> deck
+          ))
+        }
+      ))
+    }
+  }
 
-      Ok(EditDistance.editDist(deck1CardCodes, deck2CardCodes).toString)
+  def decks = Action.async {
+    for {
+      decks <- netrunnerDb.getDecks
+    } yield {
+      Ok(JsArray(decks.toSeq))
     }
   }
 }
